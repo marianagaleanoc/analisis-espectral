@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QApplication
 from Controlador import senal
 from Vistas import InterfazGrafico
 
-
+#Desde aqui se corre el codigo para que exista comunicacion entre vistas y el controlador
 class Coordinador(object):
  
     def __init__(self, vista, senal):

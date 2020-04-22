@@ -12,27 +12,25 @@ import numpy as np
 from IPython import get_ipython
 import scipy.signal as signal;
 
-#%%
-class MyGraphCanvas(FigureCanvas):#define la ventana
+#%%Definimos la ventana
+class MyGraphCanvas(FigureCanvas):
     def __init__(self, parent= None,width=5, height=4, dpi=100):#configuraciones parte grafica de la ventana
         
         self.__fig = Figure(figsize=(width, height), dpi=dpi);
         self.__axes = self.__fig.add_subplot(111);
         FigureCanvas.__init__(self,self.__fig);
         
-#%%
-    def set_data(self,data):#referencias de manera global a datos
+#%%Referencia de manera global a los dats cargados .mat
+    def set_data(self,data):
         global datos;
         datos=data;
+        datos = datos - np.mean(datos)#se elimina el efecto del la baja frecuencia, se elimina nivel DC de la señal
 
 #%%
-    def grafique(self,datos,min,max):#graficar en campo grafico
-        print (datos)
-        
-        #global datos;#datos son los datos del .mat
+    def grafique(self,datos,min,max):#graficar en campo grafico la señal original
         
         self.__axes.clear();#borra 
-        self.__axes.set_xlim(min, max);  
+        self.__axes.set_xlim(min, max);#acotando eje x
 
         for c in range(datos.shape[0]):
             self.__axes.plot(datos[c,:]+c*10)
@@ -45,9 +43,9 @@ class MyGraphCanvas(FigureCanvas):#define la ventana
         #fija los datos en la imagen
         self.__axes.figure.canvas.draw();
 
-#%%        
+#%%Grafica wavelet continuo
     def grafique2(self,time, freqs, power):
-        #primero se necesita limpiar la grafica anterior
+        #se limpia, por si hay alguna grafica anterior
         self.__axes.clear()
         #ingresamos los datos a graficar
         scalogram = self.__axes.contourf(time,
@@ -55,22 +53,17 @@ class MyGraphCanvas(FigureCanvas):#define la ventana
                  power[(freqs >= 4) & (freqs <= 40),:],
                  100, # Especificar 20 divisiones en las escalas de color 
                  extend='both')
-        #y lo graficamos
-        print("datos")
-        #self.__axes.set_ylim(4,40);
         self.__axes.set_ylabel('Frecuencia [Hz]',color="#525a8d",size=6);
         self.__axes.set_xlabel('Tiempo [s]',color="#525a8d",size=6); 
-        self.__axes.set_title('Filtrado Wavelet',color="#525a8d",size=10);
+        self.__axes.set_title('Wavelet Continuo',color="#525a8d",size=10);
         cbar = plt.colorbar(scalogram)
-        self.__axes.figure.canvas.draw();#ordenamos que dibuje
+        #fija los datos en la imagen
+        self.__axes.figure.canvas.draw();
         
-#%%    
+#%%Grafica welch
     def grafique3(self,f,Pxx,nivel):
-        print("graficando")
-        print(f)
-        print("pxx")
-        print(Pxx)
         self.__axes.clear()#limpia
+        #dependiendo del nivel de venana graficamos los puntos necesarios
         if nivel=='256':
             self.__axes.plot(f[(f >= 4) & (f <= 40)],Pxx[(f >= 4) & (f <= 40)],'m')
         elif nivel=='512':
@@ -82,8 +75,9 @@ class MyGraphCanvas(FigureCanvas):#define la ventana
         self.__axes.set_xlabel('x',color="#525a8d",size=6);
         self.__axes.set_ylabel('y',color="#525a8d",size=6); 
         self.__axes.set_title('Filtrado Welch',color="#525a8d",size=10);
+        #fija los datos en la imagen
         self.__axes.figure.canvas.draw();
- #%%   
+ #%%Barra de herramientas para las dos graficas
 class MyToolbar(NavigationToolbar):#clase barra de herramientas
   def __init__(self, figure_canvas, parent= None):
     self.toolitems = (('Home', 'Home', 'home', 'home'),#inicio
@@ -94,7 +88,7 @@ class MyToolbar(NavigationToolbar):#clase barra de herramientas
         ('Save', 'Guardar figura', 'filesave', 'save_figure'))#guardar imagen
     NavigationToolbar.__init__(self, figure_canvas, parent= None) 
 
-#%%
+#%%Clase que llama a la ventana .ui
 class InterfazGrafico(QMainWindow):#hereda de QMainWindow
     def __init__(self):
         super(InterfazGrafico,self).__init__();
@@ -102,11 +96,11 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
         loadUi ('Principal.ui',self);#llama al .ui        
         self.setup();      
         self.show();
-#%%       
+#%%llamamos a coordinador
     def SetCoordinador(self, coordinador):#coordina vista y senal
         self.__coordinador=coordinador;
-#%%        
-    def setup(self):#conficguracion inicial del programa 
+#%%#configuracion inicial del programa
+    def setup(self): 
         #Grafico 1
         layout = QVBoxLayout();      
         self.campo_grafico.setLayout(layout);   
@@ -116,11 +110,11 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
         self.campo_grafico_2.setLayout(layout2); 
         self.__sc2 = MyGraphCanvas(self.campo_grafico_2, width=5, height=4, dpi=80); 
         
-        #barra ampliar, guardar y mover imagen
+        #barra ampliar, guardar y mover imagen, campo 1
         self.navigation_toolbar = MyToolbar(self.__sc, self)
         self.navigation_toolbar.update()
         layout.addWidget(self.navigation_toolbar)
-        
+        #barra ampliar, guardar y mover imagen, campo 2
         self.navigation_toolbar = MyToolbar(self.__sc2, self)
         self.navigation_toolbar.update()
         layout2.addWidget(self.navigation_toolbar)
@@ -148,7 +142,7 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
         self.combo_nivel_super.addItem("50%");
         self.combo_nivel_super.addItem("75%");
                 
-
+        #se desabilitan antes de cargar una señal
         self.boton_wavelet.setEnabled(False);
         self.boton_welch.setEnabled(False);
 
@@ -157,34 +151,27 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
         self.combo_tipo_ventana.setEnabled(False);
         self.combo_nivel_super.setEnabled(False);
         
-    
-#    def Cambiar_estado(self):#cambio de canal
-#        global lista;
-#        lista=[self.canal1.isChecked(),self.canal2.isChecked(),self.canal3.isChecked(),self.canal4.isChecked(),self.canal5.isChecked(),self.canal6.isChecked(),self.canal7.isChecked(),self.canal8.isChecked()];
-#        self.__sc.grafique(lista,self.__x_min, self.__x_max); 
 
-#%%
-    def conf(self):
+#%%se llama esta funcion al cargar una señal
+    def conf(self,datos):
         #Activamos despues de cargar señal
         self.boton_wavelet.setEnabled(True);
-
         self.boton_welch.setEnabled(True);
-
         self.combo_nivel_ventana.setEnabled(True);
         self.combo_tipo_ventana.setEnabled(True);
         self.combo_nivel_super.setEnabled(True);
     
         self.__x_min=0;
-        self.__x_max=12500;
+        self.__x_max=len(datos[0]);#grafica el total de los puntos de la señal
 
-#%%
-    def load_file(self):#carga el archivo .mat
+#%%#carga el archivo .mat
+    def load_file(self):
         archivo_cargado, _ = QFileDialog.getOpenFileName(self, "Abrir señal","","Todos los archivos (*);;Archivos mat (*.mat)*");
         if archivo_cargado != '':
             print('Archivo cargado con éxito .mat')
             global data;
 
-            data = sio.loadmat(archivo_cargado);
+            data = sio.loadmat(archivo_cargado);#abrimos archivo
             
             opcion=self.combo_opciones.currentText();
             
@@ -206,87 +193,72 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
                 sensores, puntos, ensayos = data.shape;
                 senal_continua = np.reshape(data, (sensores, puntos*ensayos), order = 'F')
             
-            self.conf();
+            self.conf(data);
             self.__coordinador.recibirConjunto_Puntos(senal_continua);#llama al coordinador
             self.__sc.set_data(self.__coordinador.devolverConjunto_Puntos(self.__x_min, self.__x_max));
-            self.__sc.grafique(datos,self.__x_min, self.__x_max);#grafica
             self.__x_min=0;
             self.__x_max=1000;
+            self.__sc.grafique(datos,self.__x_min, self.__x_max);#grafica señal original
             
-#%%                 
+#%%llamado a la funcion filtrar_welch
     def welch(self):
         print("welch")
         global datos
+        #coge lo que este seleccionado en los combo box
         nivel=self.combo_nivel_ventana.currentText();
         tipo=self.combo_tipo_ventana.currentText();
         superposicion=self.combo_nivel_super.currentText();
     
         if superposicion=='0%':
             superposicion=0;
-            print("0%")
         elif superposicion=='25%':
             superposicion=0.25;
-            print("25%")
         elif superposicion=='50%':
             superposicion=0.5;
-            print("50%")
         else:
             superposicion=0.75;
-            print("75%")
         
         f,Pxx=self.filtrar_welch(datos[0],nivel,tipo,superposicion);#funcion filtrado
         print('Filtrando_welch .mat')
-        self.__sc2.grafique3(f,Pxx,nivel);
-#%%        
+        self.__sc2.grafique3(f,Pxx,nivel);#se grafica
+#%%Welch, retorna f y Pxx
     def filtrar_welch(self,datos,nivel,tipo,superposicion):
         fs = 250
         
         if nivel=='256':
-            print("256")
             if tipo=='Hamming':
                 f, Pxx = signal.welch(datos,fs,'hamming', 256, 256*(superposicion), 256, scaling='density');#leve
                 
         elif nivel=='512':
-            print("512")
             if tipo=='Hamming':
                 f, Pxx = signal.welch(datos,fs,'hamming', 512, 512*(superposicion), 512, scaling='density');#detallado
         else:
-            print("1024")
             if tipo=='Hamming':
                 f, Pxx = signal.welch(datos,fs,'hamming', 1024, 1024*(superposicion), 1024, scaling='density');#medio
         return f,Pxx
-#%%      
-    def wavelet(self):#funcion si esta seleccionado solo un canal se puede hacer el filtrado de lo contrario sale error
+#%%Llamado a la funcion calcularwavelet
+    def wavelet(self):
         global datos
         tiempo, freq, power = self.calcularWavelet(datos[0])
         self.__sc.grafique2(tiempo, freq, power)
-#%%
+#%%Wavelet contunio, retorna tiempo, frecuencia y potencia
     def calcularWavelet(self, datos):
         #analisis usando wavelet continuo
         import pywt 
-        #fs = 250;
-        sampling_period =  1/1000
+        fs = 250;
+        sampling_period =  1/fs
         Frequency_Band = [4, 30] # Banda de frecuencia a analizar
 
-        # Métodos de obtener las escalas para el Complex Morlet Wavelet  
-        # Método 1:
         # Determinar las frecuencias respectivas para una escalas definidas
         scales = np.arange(1, 250)
         frequencies = pywt.scale2frequency('cmor', scales)/sampling_period
         # Extraer las escalas correspondientes a la banda de frecuencia a analizar
         scales = scales[(frequencies >= Frequency_Band[0]) & (frequencies <= Frequency_Band[1])] 
-        
-        N = len(datos)
-        print(N)
-        #N = datos.shape()
-    
+        N = len(datos)    
         # Obtener el tiempo correspondiente a una epoca de la señal (en segundos)
         time_epoch = sampling_period*N
-
-        # Analizar una epoca de un montaje (con las escalas del método 1)
         # Obtener el vector de tiempo adecuado para una epoca de un montaje de la señal
         time = np.arange(0, time_epoch, sampling_period)
-        # Para la primera epoca del segundo montaje calcular la transformada continua de Wavelet, usando Complex Morlet Wavelet
 
         [coef, freqs] = pywt.cwt(datos, scales, 'cmor', sampling_period)
         # Calcular la potencia 

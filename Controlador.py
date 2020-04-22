@@ -1,4 +1,4 @@
-
+#se llama al cargar la señal
 class senal(object):
     def __init__(self, data = None):
         if data is not None:
