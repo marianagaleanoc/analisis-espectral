@@ -61,20 +61,14 @@ class MyGraphCanvas(FigureCanvas):
         self.__axes.figure.canvas.draw();
         
 #%%Grafica welch
-    def grafique3(self,f,Pxx,nivel):
+    def grafique3(self,f,Pxx):
         self.__axes.clear()#limpia
-        #dependiendo del nivel de venana graficamos los puntos necesarios
-        if nivel=='256':
-            self.__axes.plot(f[(f >= 4) & (f <= 40)],Pxx[(f >= 4) & (f <= 40)],'m')
-        elif nivel=='512':
-            self.__axes.plot(f,Pxx,'m')
-        else:
-            self.__axes.plot(f[(f >= 4) & (f <= 40)],Pxx[(f >= 4) & (f <= 40)],'m')
-        
+        #dependiendo del nivel de venana graficamos los puntos necesarios        
+        self.__axes.plot(f[(f >= 4) & (f <= 40)],Pxx[(f >= 4) & (f <= 40)],'m')       
         self.__axes.grid()
-        self.__axes.set_xlabel('x',color="#525a8d",size=6);
-        self.__axes.set_ylabel('y',color="#525a8d",size=6); 
-        self.__axes.set_title('Filtrado Welch',color="#525a8d",size=10);
+        self.__axes.set_xlabel('Frecuencia',color="#525a8d",size=6);
+        self.__axes.set_ylabel('Potencia',color="#525a8d",size=6); 
+        self.__axes.set_title('Metodo de Welch',color="#525a8d",size=10);
         #fija los datos en la imagen
         self.__axes.figure.canvas.draw();
  #%%Barra de herramientas para las dos graficas
@@ -220,7 +214,7 @@ class InterfazGrafico(QMainWindow):#hereda de QMainWindow
         
         f,Pxx=self.filtrar_welch(datos[0],nivel,tipo,superposicion);#funcion filtrado
         print('Filtrando_welch .mat')
-        self.__sc2.grafique3(f,Pxx,nivel);#se grafica
+        self.__sc2.grafique3(f,Pxx);#se grafica
 #%%Welch, retorna f y Pxx
     def filtrar_welch(self,datos,nivel,tipo,superposicion):
         fs = 250
